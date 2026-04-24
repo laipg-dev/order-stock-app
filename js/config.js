@@ -1,0 +1,40 @@
+const STORAGE_KEYS = {
+  API_URL: 'ORDER_STOCK_V6_API_URL',
+  ACTIVE_TAB: 'ORDER_STOCK_V6_ACTIVE_TAB'
+};
+
+const ORDER_STATUS = {
+  PENDING: 'PENDING',
+  FACTORY_ORDERED: 'FACTORY_ORDERED',
+  DELIVERING: 'DELIVERING',
+  CANCELLED: 'CANCELLED',
+  COMPLETED: 'COMPLETED',
+  RETURNED: 'RETURNED'
+};
+
+const ORDER_STATUS_LABELS = {
+  PENDING: 'Đang xử lý',
+  FACTORY_ORDERED: 'Đã order nhà máy',
+  DELIVERING: 'Giao hàng',
+  CANCELLED: 'Đã hủy order',
+  COMPLETED: 'Giao hàng thành công',
+  RETURNED: 'Giao hàng không thành công'
+};
+
+const FACTORY_STATUS = {
+  NEED_ORDER: 'NEED_ORDER',
+  ORDERED: 'ORDERED',
+  RECEIVED: 'RECEIVED'
+};
+
+const FACTORY_STATUS_LABELS = {
+  NEED_ORDER: 'Chưa order nhà máy',
+  ORDERED: 'Đã order nhà máy',
+  RECEIVED: 'Đã nhận hàng'
+};
+
+const TERMINAL_ORDER_STATUS = [
+  ORDER_STATUS.CANCELLED,
+  ORDER_STATUS.COMPLETED,
+  ORDER_STATUS.RETURNED
+];
