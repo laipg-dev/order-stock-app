@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quản lý Kho & Order - V6</title>
+  <title>Quản lý Kho Order-to-Stock - Supabase</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -17,23 +19,44 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <div class="max-w-7xl mx-auto p-3 md:p-5 pb-28 md:pb-8">
+  <div class="max-w-7xl mx-auto p-3 md:p-5 pb-44 md:pb-8">
     <header class="app-header">
       <div>
-        <h1 class="text-2xl md:text-4xl font-black">Quản lý Kho & Order</h1>
-        <p class="text-slate-500 mt-1">Đơn nhiều sản phẩm, quản lý tồn kho và hàng đặt nhà máy.</p>
+        <h1 class="text-2xl md:text-4xl font-black">Quản lý Kho & Order-to-Stock</h1>
+        <p class="text-slate-500 mt-1">Web tĩnh HTML/CSS/JS thuần, lưu dữ liệu và ảnh sản phẩm bằng Supabase.</p>
       </div>
       <button onclick="loadAll({keepView:true})" class="btn btn-secondary">Tải lại</button>
     </header>
 
     <section class="card mb-4">
-      <label class="label">Google Apps Script Web App URL</label>
-      <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 mt-2">
-        <input id="apiUrl" class="input" placeholder="https://script.google.com/macros/s/.../exec" />
-        <button onclick="saveApiUrl()" class="btn btn-primary">Lưu URL</button>
+      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-3">
+        <div>
+          <h2 class="section-title mb-1">Settings Supabase</h2>
+          <p class="text-sm text-slate-500">Nhập Supabase URL, anon/public key và bucket lưu ảnh. Cấu hình được lưu trong localStorage.</p>
+        </div>
+        <span class="badge factory">Database + Storage</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <div>
+          <label class="label">SUPABASE_URL</label>
+          <input id="supabaseUrl" class="input" placeholder="https://xxxxx.supabase.co" />
+        </div>
+        <div>
+          <label class="label">SUPABASE_KEY</label>
+          <input id="supabaseKey" class="input" placeholder="Anon/Public key" />
+        </div>
+        <div>
+          <label class="label">Storage Bucket</label>
+          <input id="supabaseBucket" class="input" value="product-images" />
+        </div>
+      </div>
+
+      <div class="sticky-actions">
+        <button onclick="saveSupabaseSettings()" class="btn btn-primary">Lưu cấu hình</button>
         <button onclick="loadAll({keepView:true})" class="btn btn-secondary">Tải dữ liệu</button>
       </div>
-      <p class="text-xs text-slate-500 mt-2">URL được lưu trong trình duyệt của bạn bằng localStorage.</p>
+      <p class="text-xs text-slate-500 mt-2">Không dùng service_role key ở frontend. Với bản demo local, file SQL đã có policy public để bạn test nhanh.</p>
     </section>
 
     <nav class="tabs">
@@ -41,7 +64,8 @@
       <button class="tab-btn" data-tab="products" onclick="showTab('products')">Sản phẩm</button>
       <button class="tab-btn" data-tab="orderForm" onclick="showTab('orderForm')">Tạo đơn</button>
       <button class="tab-btn" data-tab="orders" onclick="showTab('orders')">Đơn hàng</button>
-      <button class="tab-btn" data-tab="factory" onclick="showTab('factory')">Nhà máy</button>
+      <button class="tab-btn" data-tab="factory" onclick="showTab('factory')">Kho/NM</button>
+      <button class="tab-btn" data-tab="revenue" onclick="showTab('revenue')">Doanh thu</button>
     </nav>
 
     <main>
@@ -73,11 +97,19 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><label class="label">Tên sản phẩm</label><input id="productName" class="input" /></div>
             <div><label class="label">Loại / Category</label><input id="productCategory" class="input" placeholder="AO, GIAY, TUI..." /></div>
-            <div><label class="label">Giá nhập</label><input id="costPrice" type="number" class="input" /></div>
-            <div><label class="label">Giá bán</label><input id="salePrice" type="number" class="input" /></div>
-            <div><label class="label">Tồn kho</label><input id="stock" type="number" class="input" /></div>
-            <div><label class="label">URL ảnh sản phẩm</label><input id="imageUrl" class="input" placeholder="https://..." /></div>
-            <div class="md:col-span-2"><label class="label">Thuộc tính</label><input id="attributes" class="input" placeholder="Size=M; Màu=Đen; Chất liệu=..." /></div>
+            <div><label class="label">Giá nhập</label><input id="costPrice" type="number" min="0" class="input" /></div>
+            <div><label class="label">Giá bán</label><input id="salePrice" type="number" min="0" class="input" /></div>
+            <div><label class="label">Tồn kho</label><input id="stock" type="number" min="0" class="input" /></div>
+            <div>
+              <label class="label">Upload anh san pham</label>
+              <input id="productImageFile" type="file" accept="image/*" class="input" onchange="previewSelectedProductImage()" />
+              <input id="imageUrl" type="hidden" />
+              <div class="mt-3 flex items-center gap-3">
+                <div id="productImagePreview" class="product-img grid place-items-center text-xs text-slate-500">No image</div>
+                <p class="text-xs text-slate-500">Chon anh tu may. App se tu upload len Supabase Storage va tu luu link anh vao Database.</p>
+              </div>
+            </div>
+            <div><label class="label">Thuộc tính</label><input id="attributes" class="input" placeholder="Size=M; Mau=Den; Chat lieu=..." /></div>
           </div>
           <div class="sticky-actions">
             <button onclick="saveProduct()" class="btn btn-primary">Lưu sản phẩm</button>
@@ -99,13 +131,13 @@
           </div>
 
           <div class="mt-5">
-            <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center justify-between mb-2 gap-2">
               <h3 class="font-black text-lg">Sản phẩm trong đơn</h3>
               <button onclick="addOrderItemRow()" class="btn btn-secondary">+ Thêm sản phẩm</button>
             </div>
             <div id="orderItemsBox" class="space-y-3"></div>
             <p class="text-sm text-slate-500 mt-3">
-              Khi lưu đơn, hệ thống kiểm tra tồn kho từng sản phẩm. Sản phẩm đủ kho sẽ được giữ cho đơn. Sản phẩm thiếu kho sẽ hiển thị trong panel Nhà máy để order và nhận hàng.
+              Khi luu, he thong tao 1 don hang duy nhat va luu tung san pham vao bang order_items. Neu san pham thieu kho, dong do tu xuat hien o tab Kho/Nha may de xu ly nhap hang.
             </p>
           </div>
 
@@ -119,13 +151,16 @@
       <section id="tab-orders" class="tab-panel hidden">
         <div class="card mb-3">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <h2 class="section-title mb-0">Quản lý đơn hàng</h2>
+            <div>
+              <h2 class="section-title mb-0">Quản lý đơn hàng</h2>
+              <p class="text-sm text-slate-500">Giao hàng sẽ trừ kho bằng transaction. Hoàn hàng/thất bại sẽ cộng kho lại bằng transaction.</p>
+            </div>
             <select id="orderStatusFilter" class="input md:max-w-xs" onchange="renderOrders()">
               <option value="ALL">Tất cả trạng thái</option>
               <option value="PENDING">Đang xử lý</option>
               <option value="FACTORY_ORDERED">Đã order nhà máy</option>
-              <option value="DELIVERING">Giao hàng</option>
-              <option value="CANCELLED">Khách đã hủy order</option>
+              <option value="DELIVERING">Đang giao hàng</option>
+              <option value="CANCELLED">Đã hủy order</option>
               <option value="COMPLETED">Giao hàng thành công</option>
               <option value="RETURNED">Giao hàng không thành công</option>
             </select>
@@ -136,12 +171,85 @@
 
       <section id="tab-factory" class="tab-panel hidden">
         <div class="card mb-3">
-          <h2 class="section-title">Quản lý hàng đặt từ nhà máy</h2>
+          <h2 class="section-title">Kho / Nhà máy</h2>
           <p class="text-slate-500">
-            Danh sách này tự sinh từ các đơn hàng có sản phẩm thiếu kho. Nút Hủy order NM chỉ đổi lại trạng thái Chưa order nhà máy, dữ liệu chỉ biến mất khi đơn hàng bị Xóa đơn.
+            Danh sach nay tu sinh tu cac dong san pham trong don hang bi thieu kho. Da order NM chi doi trang thai dong nha may de tranh dat trung. Da nhan hang chi cong ton kho, khong tu giao hang. Sau do quay lai tab Don hang va bam Giao hang.
           </p>
         </div>
         <div id="factoryList" class="space-y-3"></div>
+      </section>
+
+      <section id="tab-revenue" class="tab-panel hidden">
+        <div class="card mb-4">
+          <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
+            <div>
+              <h2 class="section-title mb-1">Quản lý doanh thu</h2>
+              <p class="text-slate-500">Theo dõi Total Sales, Total Profit, sản phẩm bán chạy và tăng trưởng doanh thu theo tháng.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2 w-full lg:max-w-3xl">
+              <div>
+                <label class="label">Tháng</label>
+                <select id="revenueMonth" class="input" onchange="renderRevenue()">
+                  <option value="">Tất cả tháng</option>
+                  <option value="1">Tháng 1</option>
+                  <option value="2">Tháng 2</option>
+                  <option value="3">Tháng 3</option>
+                  <option value="4">Tháng 4</option>
+                  <option value="5">Tháng 5</option>
+                  <option value="6">Tháng 6</option>
+                  <option value="7">Tháng 7</option>
+                  <option value="8">Tháng 8</option>
+                  <option value="9">Tháng 9</option>
+                  <option value="10">Tháng 10</option>
+                  <option value="11">Tháng 11</option>
+                  <option value="12">Tháng 12</option>
+                </select>
+              </div>
+              <div>
+                <label class="label">Năm</label>
+                <input id="revenueYear" class="input" type="number" placeholder="2026" onchange="renderRevenue()" />
+              </div>
+              <div>
+                <label class="label">Sắp xếp</label>
+                <select id="revenueSort" class="input" onchange="renderRevenue()">
+                  <option value="recent">Thời gian gần nhất</option>
+                  <option value="sales_desc">Doanh thu cao nhất</option>
+                  <option value="profit_desc">Lợi nhuận cao nhất</option>
+                  <option value="product_best_seller">Sản phẩm bán chạy nhất</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div class="metric"><span>Total Sales</span><b id="revTotalSales">0 đ</b></div>
+          <div class="metric"><span>Total Profit</span><b id="revTotalProfit">0 đ</b></div>
+          <div class="metric"><span>Đơn thành công</span><b id="revOrderCount">0</b></div>
+          <div class="metric"><span>Best Seller</span><b id="revBestSeller">-</b></div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-4">
+          <div class="card chart-box">
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <h3 class="section-title mb-0">Tăng trưởng doanh thu theo tháng</h3>
+              <span class="badge completed">Chart.js</span>
+            </div>
+            <canvas id="revenueChart" height="130"></canvas>
+            <p class="text-xs text-slate-500 mt-3">Biểu đồ đường giúp theo dõi xu hướng doanh thu và lợi nhuận theo tháng.</p>
+          </div>
+
+          <div class="card">
+            <h3 class="section-title">Top sản phẩm</h3>
+            <div id="revenueTopProducts" class="space-y-2"></div>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <h3 class="section-title">Chi tiết doanh thu</h3>
+          <div id="revenueList" class="space-y-3"></div>
+        </div>
       </section>
     </main>
   </div>

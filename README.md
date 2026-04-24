@@ -1,34 +1,44 @@
-# Order-to-Stock App V5
+# Order-to-Stock Inventory App - Supabase Fixed Version
 
-Bản V5 bổ sung ràng buộc trạng thái để tránh thất lạc dữ liệu.
+Ban nay sua dung luong nghiep vu:
 
-## Trạng thái đơn hàng
+1. Tao don hang se tao 1 order duy nhat trong bang `orders`.
+2. Tat ca san pham trong don duoc luu thanh cac dong trong bang `order_items`.
+3. Neu san pham thieu kho, dong do xuat hien trong tab Kho/NM.
+4. Nut `Da order NM` chi doi `order_items.factory_status = ORDERED` de tranh dat trung.
+5. Nut `Da nhan hang` chi cong ton kho theo `factory_qty` va doi `factory_status = RECEIVED`.
+6. He thong khong tu giao hang sau khi nhan hang. Nguoi dung phai quay lai tab Don hang va bam `Giao hang`.
+7. Khi bam `Giao hang`, transaction moi tru ton kho.
+8. Neu giao that bai/hoan hang, transaction cong lai ton kho.
+9. Upload anh san pham len Supabase Storage bucket `product-images`, khong nhap URL thu cong.
 
-1. PENDING: Đang đợi xử lý
-2. FACTORY_ORDERED: Đã order hàng từ nhà máy
-3. FACTORY_RECEIVED: Đã có hàng từ nhà máy
-4. DELIVERING: Đang giao hàng
-5. COMPLETED: Order đã hoàn thành
-6. RETURNED: Order hoàn về
-7. CANCELLED: Khách đã hủy order
+## Cach cai dat
 
-## Luồng chuyển trạng thái hợp lệ
+1. Giai nen source.
+2. Vao Supabase Dashboard > SQL Editor.
+3. Copy toan bo `supabase/setup.sql` va chay.
+4. Mo `index.html` bang server tinh, vi du:
 
-PENDING -> FACTORY_ORDERED -> FACTORY_RECEIVED -> DELIVERING -> COMPLETED
-PENDING -> FACTORY_ORDERED -> FACTORY_RECEIVED -> DELIVERING -> RETURNED
-PENDING -> DELIVERING -> COMPLETED
-PENDING -> DELIVERING -> RETURNED
-PENDING -> CANCELLED
-FACTORY_ORDERED -> CANCELLED, chỉ khi chưa nhận hàng từ nhà máy.
+```bash
+python -m http.server 5500
+```
 
-Không được quay ngược trạng thái sau khi đã giao hàng.
+5. Nhap:
 
-## Hàng nhà máy
+```txt
+SUPABASE_URL: https://xxxx.supabase.co
+SUPABASE_KEY: anon/public key
+Storage Bucket: product-images
+```
 
-NEED_ORDER -> ORDERED -> RECEIVED
-NEED_ORDER -> CANCELLED
-ORDERED -> CANCELLED
+Khong nhap URL co `/rest/v1`.
 
-Nếu đã RECEIVED thì không thể hủy.
-Hàng đã nhận từ nhà máy không tính là tồn kho chung, vì đang thuộc đơn hàng cụ thể.
-Nếu giao không thành công và chuyển RETURNED, hàng mới cộng vào tồn kho.
+## Neu da chay ban cu
+
+Nen chay lai `supabase/setup.sql`. File SQL moi se tao bang `order_items`, migrate du lieu cu neu co cot `orders.product_id`, roi xoa cot cu de khong bi tao moi 1 san pham thanh 1 don rieng.
+
+Neu trinh duyet con luu cau hinh cu, mo Console va chay:
+
+```js
+localStorage.clear()
+```

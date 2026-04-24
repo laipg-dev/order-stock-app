@@ -1,23 +1,26 @@
 function addOrderItemRow(item = {}) {
   const box = document.getElementById('orderItemsBox');
+  if (!box) return;
+
   const row = document.createElement('div');
   row.className = 'order-item-row';
   row.innerHTML = `
     <div class="grid grid-cols-1 md:grid-cols-[1fr_120px_auto] gap-2 items-end">
       <div>
-        <label class="label">Sản phẩm</label>
+        <label class="label">San pham</label>
         <select class="input order-product-select"></select>
       </div>
       <div>
-        <label class="label">Số lượng</label>
+        <label class="label">So luong</label>
         <input class="input order-qty" type="number" min="1" value="${Number(item.qty || 1)}" />
       </div>
-      <button type="button" class="btn btn-danger" onclick="this.closest('.order-item-row').remove()">Xóa</button>
+      <button type="button" class="btn btn-danger" onclick="this.closest('.order-item-row').remove()">Xoa</button>
     </div>
   `;
   box.appendChild(row);
+
   const select = row.querySelector('.order-product-select');
-  select.innerHTML = appState.products.map(p => `<option value="${p.id}">${escapeHtml(p.name)} - Kho ${Number(p.stock || 0)} - ${money(p.salePrice)}</option>`).join('');
+  select.innerHTML = appState.products.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} - Kho ${Number(p.stock || 0)} - ${money(p.salePrice)}</option>`).join('');
   if (item.productId) select.value = item.productId;
 }
 
@@ -27,7 +30,7 @@ function readOrderForm() {
     qty: Number(row.querySelector('.order-qty').value || 1)
   })).filter(i => i.productId && i.qty > 0);
 
-  if (!items.length) throw new Error('Vui lòng thêm ít nhất một sản phẩm vào đơn.');
+  if (!items.length) throw new Error('Vui long them it nhat mot san pham vao don.');
 
   return {
     id: document.getElementById('editingOrderId').value,
@@ -42,14 +45,14 @@ function readOrderForm() {
 async function saveOrder() {
   try {
     const payload = readOrderForm();
-    if (!payload.customerName || !payload.customerPhone) throw new Error('Vui lòng nhập tên khách và số điện thoại.');
+    if (!payload.customerName || !payload.customerPhone) throw new Error('Vui long nhap ten khach va so dien thoai.');
 
     if (payload.id) {
-      await api('updateOrder', payload, 'Đang cập nhật đơn hàng...');
-      toast('Đã cập nhật đơn hàng.');
+      await api('updateOrder', payload, 'Dang cap nhat don hang...');
+      toast('Da cap nhat don hang.');
     } else {
-      const result = await api('createOrder', payload, 'Đang tạo đơn hàng...');
-      toast(result.message || 'Đã tạo đơn hàng.');
+      const result = await api('createOrder', payload, 'Dang tao don hang...');
+      toast(result.message || 'Da tao don hang.');
     }
 
     resetOrderForm();
@@ -63,16 +66,18 @@ async function saveOrder() {
 function editOrder(id) {
   const o = appState.orders.find(x => x.id === id);
   if (!o) return;
+
   if (o.status !== ORDER_STATUS.PENDING && o.status !== ORDER_STATUS.FACTORY_ORDERED) {
-    toast('Chỉ nên sửa đơn khi đơn chưa giao hàng hoặc chưa kết thúc.');
+    toast('Chi nen sua don khi don chua giao hang hoac chua ket thuc.');
     return;
   }
+
   document.getElementById('editingOrderId').value = o.id;
   document.getElementById('customerName').value = o.customerName || '';
   document.getElementById('customerPhone').value = o.customerPhone || '';
   document.getElementById('customerAddress').value = o.customerAddress || '';
   document.getElementById('orderNote').value = o.note || '';
-  document.getElementById('orderFormTitle').textContent = 'Sửa đơn hàng';
+  document.getElementById('orderFormTitle').textContent = 'Sua don hang';
   document.getElementById('orderItemsBox').innerHTML = '';
   getOrderItems(o.id).forEach(i => addOrderItemRow(i));
   showTab('orderForm');
@@ -84,18 +89,19 @@ function resetOrderForm() {
   document.getElementById('customerPhone').value = '';
   document.getElementById('customerAddress').value = '';
   document.getElementById('orderNote').value = '';
-  document.getElementById('orderFormTitle').textContent = 'Tạo đơn hàng mới';
+  document.getElementById('orderFormTitle').textContent = 'Tao don hang moi';
   document.getElementById('orderItemsBox').innerHTML = '';
   addOrderItemRow();
 }
 
 async function setOrderStatus(id, status) {
   const label = ORDER_STATUS_LABELS[status] || status;
-  if (!confirm('Chuyển đơn sang trạng thái: ' + label + '?')) return;
+  if (!confirm('Chuyen don sang trang thai: ' + label + '?')) return;
+
   try {
-    await api('updateOrderStatus', { id, status }, 'Đang cập nhật trạng thái...');
+    await api('updateOrderStatus', { id, status }, 'Dang cap nhat trang thai...');
     await loadAll({ keepView: true });
-    toast('Đã cập nhật trạng thái đơn hàng.');
+    toast('Da cap nhat trang thai don hang.');
   } catch (err) {
     toast(err.message);
   }
@@ -103,22 +109,24 @@ async function setOrderStatus(id, status) {
 
 async function updateFactoryItem(orderItemId, factoryStatus) {
   const label = FACTORY_STATUS_LABELS[factoryStatus] || factoryStatus;
-  if (!confirm('Chuyển trạng thái nhà máy sang: ' + label + '?')) return;
+  if (!confirm('Chuyen trang thai nha may sang: ' + label + '?')) return;
+
   try {
-    await api('updateFactoryItem', { orderItemId, factoryStatus }, 'Đang cập nhật hàng nhà máy...');
+    await api('updateFactoryItem', { orderItemId, factoryStatus }, 'Dang cap nhat hang nha may...');
     await loadAll({ keepView: true });
-    toast('Đã cập nhật hàng nhà máy.');
+    toast('Da cap nhat hang nha may.');
   } catch (err) {
     toast(err.message);
   }
 }
 
 async function deleteOrder(id) {
-  if (!confirm('Xóa đơn này? Đơn sẽ biến mất khỏi Đơn hàng và các mục liên quan trong Nhà máy cũng bị xóa.')) return;
+  if (!confirm('Xoa don nay? Don se bien mat khoi Don hang va cac muc lien quan trong Nha may cung bi xoa.')) return;
+
   try {
-    await api('deleteOrder', { id }, 'Đang xóa đơn hàng...');
+    await api('deleteOrder', { id }, 'Dang xoa don hang...');
     await loadAll({ keepView: true });
-    toast('Đã xóa đơn hàng.');
+    toast('Da xoa don hang.');
   } catch (err) {
     toast(err.message);
   }

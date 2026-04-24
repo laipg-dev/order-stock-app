@@ -1,7 +1,11 @@
 const STORAGE_KEYS = {
-  API_URL: 'ORDER_STOCK_V6_API_URL',
-  ACTIVE_TAB: 'ORDER_STOCK_V6_ACTIVE_TAB'
+  SUPABASE_URL: 'ORDER_STOCK_SUPABASE_URL',
+  SUPABASE_KEY: 'ORDER_STOCK_SUPABASE_KEY',
+  SUPABASE_BUCKET: 'ORDER_STOCK_SUPABASE_BUCKET',
+  ACTIVE_TAB: 'ORDER_STOCK_ACTIVE_TAB'
 };
+
+const DEFAULT_PRODUCT_BUCKET = 'product-images';
 
 const ORDER_STATUS = {
   PENDING: 'PENDING',
@@ -13,12 +17,12 @@ const ORDER_STATUS = {
 };
 
 const ORDER_STATUS_LABELS = {
-  PENDING: 'Đang xử lý',
-  FACTORY_ORDERED: 'Đã order nhà máy',
-  DELIVERING: 'Giao hàng',
-  CANCELLED: 'Đã hủy order',
-  COMPLETED: 'Giao hàng thành công',
-  RETURNED: 'Giao hàng không thành công'
+  PENDING: 'Dang xu ly',
+  FACTORY_ORDERED: 'Da order nha may',
+  DELIVERING: 'Dang giao hang',
+  CANCELLED: 'Da huy order',
+  COMPLETED: 'Giao hang thanh cong',
+  RETURNED: 'Giao hang khong thanh cong'
 };
 
 const FACTORY_STATUS = {
@@ -28,9 +32,9 @@ const FACTORY_STATUS = {
 };
 
 const FACTORY_STATUS_LABELS = {
-  NEED_ORDER: 'Chưa order nhà máy',
-  ORDERED: 'Đã order nhà máy',
-  RECEIVED: 'Đã nhận hàng'
+  NEED_ORDER: 'Can dat nha may',
+  ORDERED: 'Da dat nha may',
+  RECEIVED: 'Da nhan hang'
 };
 
 const TERMINAL_ORDER_STATUS = [
